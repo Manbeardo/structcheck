@@ -60,6 +60,30 @@ func TestNilOneLayerDown(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestTopLevelSlice(t *testing.T) {
+	err := Validate([]string{})
+	assert.Error(t, err)
+	assert.IsType(t, ErrorInvalidKind{}, err)
+}
+
+func TestSecondLevelSlice(t *testing.T) {
+	err := Validate(&[]string{})
+	assert.Error(t, err)
+	assert.IsType(t, ErrorInvalidKind{}, err)
+}
+
+func TestTopLevelNil(t *testing.T) {
+	err := Validate(nil)
+	assert.Error(t, err)
+	assert.IsType(t, ErrorNilValue{}, err)
+}
+
+func TestSecondLevelNil(t *testing.T) {
+	err := Validate(new(*struct{}))
+	assert.Error(t, err)
+	assert.IsType(t, ErrorNilValue{}, err)
+}
+
 func checkDeepEqual(e, r interface{}) error {
 	if reflect.DeepEqual(e, r) {
 		return nil

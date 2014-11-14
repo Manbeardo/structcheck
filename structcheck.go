@@ -38,8 +38,8 @@ func (v metaValue) Indirect() metaValue {
 	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: v.tag}
 }
 
-func (v metaValue) GetChecks() Checks {
-	var c Checks
+func (v metaValue) getChecks() checks {
+	var c checks
 	if v.tag != nil {
 		for _, str := range strings.Split(v.tag.Get("checks"), ",") {
 			switch strings.ToLower(str) {
@@ -51,7 +51,7 @@ func (v metaValue) GetChecks() Checks {
 	return c
 }
 
-type Checks struct {
+type checks struct {
 	NotNil bool
 }
 
@@ -99,13 +99,16 @@ func (q *valueQueue) Len() int {
 	return q.queue.Len()
 }
 
-// recursively checks that all required fields of struct o are non-nil. Not thread-safe.
+// recursively runs checks on all
 func Validate(o interface{}) error {
+	if o == nil {
+		return ErrorNilValue{}
+	}
 	top := reflect.ValueOf(o)
 	// drill down to first struct
 	for k := top.Kind(); k == reflect.Ptr || k == reflect.Interface; k = top.Kind() {
 		if top.IsNil() {
-			return fmt.Errorf("o must be non-nil")
+			return ErrorNilValue{}
 		} else if k == reflect.Ptr {
 			top = reflect.Indirect(top)
 		} else if k == reflect.Interface {
@@ -114,7 +117,7 @@ func Validate(o interface{}) error {
 	}
 
 	if top.Kind() != reflect.Struct {
-		return fmt.Errorf("o must be a struct type. Received: %v", top.Kind())
+		return ErrorInvalidKind{Kind: top.Kind()}
 	}
 	// Breadth first search to find nil required fields
 	namedTop := metaValue{Value: top, Name: []string{top.Type().Name()}}
@@ -126,7 +129,7 @@ func Validate(o interface{}) error {
 		// check NotNil conditions
 		switch v.Kind() {
 		case reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func, reflect.Map, reflect.Slice:
-			if v.IsNil() && v.GetChecks().NotNil {
+			if v.IsNil() && v.getChecks().NotNil {
 				f := NewField(v)
 				field2checks[f] = append(field2checks[f], NotNil)
 			}
@@ -155,10 +158,10 @@ func Validate(o interface{}) error {
 	}
 }
 
-type Check int
+type Check string
 
 const (
-	NotNil Check = iota
+	NotNil Check = "NotNil"
 )
 
 type Field struct {
@@ -170,6 +173,23 @@ func NewField(v metaValue) Field {
 	return Field{Name: strings.Join(v.Name, "."), Value: fmt.Sprintf("%#v", v.Value.Interface())}
 }
 
+// returned when the top level object does not drill down to a struct.
+type ErrorInvalidKind struct {
+	reflect.Kind
+}
+
+func (e ErrorInvalidKind) Error() string {
+	return fmt.Sprintf("Provided object must drill down to a struct. Received: %v", e.Kind)
+}
+
+// returned when a top level nil is received
+type ErrorNilValue struct{}
+
+func (e ErrorNilValue) Error() string {
+	return fmt.Sprintf("Provided object must drill down to a struct. Encountered nil.")
+}
+
+// returned when checks fail on fields
 type ErrorChecksFailed struct {
 	Field2Checks map[Field][]Check
 }
@@ -179,10 +199,7 @@ func (e ErrorChecksFailed) Error() string {
 	for field, checks := range e.Field2Checks {
 		fails := make([]string, 0, len(checks))
 		for _, check := range checks {
-			switch check {
-			case NotNil:
-				fails = append(fails, "NotNil")
-			}
+			fails = append(fails, string(check))
 		}
 		failLines = append(failLines, fmt.Sprintf("%v: %v: %v", strings.Join(fails, ", "), field.Name, field.Value))
 	}
