@@ -1,17 +1,23 @@
 package structcheck
 
 import (
+	"bytes"
 	"container/list"
 	"fmt"
+	"math"
 	"reflect"
+	"sort"
+	"strconv"
 	"strings"
+	"text/tabwriter"
 )
 
 // value plus information from a few levels up
 type metaValue struct {
 	reflect.Value
-	Name []string
-	tag  *reflect.StructTag
+	Name   []string
+	Number []int
+	tag    *reflect.StructTag
 }
 
 func (v metaValue) buildDeeperName(n string) []string {
@@ -20,22 +26,31 @@ func (v metaValue) buildDeeperName(n string) []string {
 	return append(name, n)
 }
 
+func (v metaValue) buildDeeperNumber(n int) []int {
+	num := make([]int, len(v.Number), len(v.Number)+1)
+	copy(num, v.Number)
+	return append(num, n)
+}
+
 func (v metaValue) Field(i int) metaValue {
-	v2 := v.Value.Field(i)
 	f := v.Value.Type().Field(i)
-	n := v.buildDeeperName(f.Name)
-	return metaValue{Value: v2, Name: n, tag: &f.Tag}
+	return metaValue{
+		Value:  v.Value.Field(i),
+		Name:   v.buildDeeperName(f.Name),
+		Number: v.buildDeeperNumber(i),
+		tag:    &f.Tag,
+	}
 }
 
 // InterfaceValue returns the Value wrapped by v (assuming v is an interface)
 func (v metaValue) InterfaceValue() metaValue {
 	v2 := reflect.ValueOf(v.Value.Interface())
 	n := v.buildDeeperName(fmt.Sprintf("(%v)", v2.Type().Name()))
-	return metaValue{Value: v2, Name: n, tag: v.tag}
+	return metaValue{Value: v2, Name: n, tag: v.tag, Number: v.Number}
 }
 
 func (v metaValue) Indirect() metaValue {
-	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: v.tag}
+	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: v.tag, Number: v.Number}
 }
 
 func (v metaValue) getChecks() checks {
@@ -120,7 +135,11 @@ func Validate(o interface{}) error {
 		return ErrorInvalidKind{Kind: top.Kind()}
 	}
 	// Breadth first search to find nil required fields
-	namedTop := metaValue{Value: top, Name: []string{top.Type().Name()}}
+	name := top.Type().Name()
+	if name == "" {
+		name = "(anonymous struct)"
+	}
+	namedTop := metaValue{Value: top, Name: []string{name}}
 	field2checks := make(map[Field][]Check)
 	q := newValueQueue()
 	q.Push(namedTop)
@@ -165,12 +184,45 @@ const (
 )
 
 type Field struct {
-	Name  string
-	Value string
+	Name   string
+	Value  string
+	Number string
 }
 
 func newField(v metaValue) Field {
-	return Field{Name: strings.Join(v.Name, "."), Value: fmt.Sprintf("%#v", v.Value.Interface())}
+	n := make([]string, len(v.Number))
+	for i, num := range v.Number {
+		n[i] = strconv.Itoa(num)
+	}
+	return Field{
+		Name:   strings.Join(v.Name, "."),
+		Value:  fmt.Sprintf("%#v", v.Value.Interface()),
+		Number: strings.Join(n, "."),
+	}
+}
+
+type ByFieldOrder []Field
+
+func (a ByFieldOrder) Len() int {
+	return len(a)
+}
+
+func (a ByFieldOrder) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+func (a ByFieldOrder) Less(i, j int) bool {
+	n1 := strings.Split(a[i].Number, ".")
+	n2 := strings.Split(a[j].Number, ".")
+	minLen := int(math.Min(float64(len(n1)), float64(len(n2))))
+	for k := 0; k < minLen; k++ {
+		if n1[k] != n2[k] {
+			num1, _ := strconv.Atoi(n1[k])
+			num2, _ := strconv.Atoi(n2[k])
+			return num1 < num2
+		}
+	}
+	return len(n1) < len(n2)
 }
 
 // returned when the top level object does not drill down to a struct.
@@ -195,13 +247,21 @@ type ErrorChecksFailed struct {
 }
 
 func (e ErrorChecksFailed) Error() string {
-	failLines := make([]string, 0, len(e.Field2Checks))
-	for field, checks := range e.Field2Checks {
+	buf := new(bytes.Buffer)
+	sortedFields := make([]Field, 0, len(e.Field2Checks))
+	for field, _ := range e.Field2Checks {
+		sortedFields = append(sortedFields, field)
+	}
+	sort.Sort(ByFieldOrder(sortedFields))
+	failWriter := tabwriter.NewWriter(buf, 1, 4, 1, ' ', 0)
+	for _, field := range sortedFields {
+		checks := e.Field2Checks[field]
 		fails := make([]string, 0, len(checks))
 		for _, check := range checks {
 			fails = append(fails, string(check))
 		}
-		failLines = append(failLines, fmt.Sprintf("%v: %v: %v", strings.Join(fails, ", "), field.Name, field.Value))
+		failWriter.Write([]byte(fmt.Sprintf("\n\t%v:\t%v:\t%v", field.Name, strings.Join(fails, ", "), field.Value)))
 	}
-	return fmt.Sprintf("The following field(s) failed checks: \n\t%v", strings.Join(failLines, "\n\t"))
+	failWriter.Flush()
+	return fmt.Sprintf("The following field(s) failed checks: %v", buf.String())
 }

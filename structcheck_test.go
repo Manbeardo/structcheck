@@ -55,8 +55,7 @@ func TestNilOneLayerDown(t *testing.T) {
 		},
 	})
 	assert.Error(t, err)
-	fmt.Println(err.Error())
-	err = checkDeepEqual(map[Field][]Check{Field{Name: "BigStruct.Slicy.NoNilly", Value: "[]interface {}(nil)"}: []Check{NotNil}}, err.(ErrorChecksFailed).Field2Checks)
+	err = checkDeepEqual(map[Field][]Check{Field{Name: "BigStruct.Slicy.NoNilly", Value: "[]interface {}(nil)", Number: "0.1"}: []Check{NotNil}}, err.(ErrorChecksFailed).Field2Checks)
 	assert.NoError(t, err)
 }
 
@@ -82,6 +81,31 @@ func TestSecondLevelNil(t *testing.T) {
 	err := Validate(new(*struct{}))
 	assert.Error(t, err)
 	assert.IsType(t, ErrorNilValue{}, err)
+}
+
+func TestNilIntPointer(t *testing.T) {
+	err := Validate(struct {
+		IntPtr *int `checks:"NotNil"`
+	}{IntPtr: nil})
+	assert.Error(t, err)
+	assert.IsType(t, ErrorChecksFailed{}, err)
+}
+
+// this is an eyeball test for the terminal output
+func TestVeryLongFieldNameStruct(t *testing.T) {
+	err := Validate(struct {
+		VeryVeryVeryVeryVeryVeryLongFieldName *int `checks:"NotNil"`
+		B                                     *int `checks:"NotNil"`
+		StructWithManyMembers                 struct {
+			A *int `checks:"NotNil"`
+			B *int `checks:"NotNil"`
+			C *int `checks:"NotNil"`
+			D *int `checks:"NotNil"`
+			E *int `checks:"NotNil"`
+		}
+	}{})
+	assert.Error(t, err)
+	fmt.Println(err.Error())
 }
 
 func checkDeepEqual(e, r interface{}) error {
