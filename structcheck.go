@@ -118,7 +118,7 @@ func Validate(o interface{}) error {
 	}
 	// Breadth first search to find nil required fields
 	namedTop := metaValue{Value: top, Name: []string{top.Type().Name()}}
-	badFields := make([][]string, 0)
+	field2checks := make(map[Field][]Check)
 	q := newValueQueue()
 	q.Push(namedTop)
 	for q.Len() > 0 {
@@ -127,7 +127,8 @@ func Validate(o interface{}) error {
 		switch v.Kind() {
 		case reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func, reflect.Map, reflect.Slice:
 			if v.IsNil() && v.GetChecks().NotNil {
-				badFields = append(badFields, v.Name)
+				f := NewField(v)
+				field2checks[f] = append(field2checks[f], NotNil)
 			}
 		}
 		// push new nodes onto queue
@@ -147,21 +148,43 @@ func Validate(o interface{}) error {
 		}
 	}
 
-	if len(badFields) != 0 {
-		return ErrorNilField{FieldNames: badFields}
+	if len(field2checks) != 0 {
+		return ErrorChecksFailed{Field2Checks: field2checks}
 	} else {
 		return nil
 	}
 }
 
-type ErrorNilField struct {
-	FieldNames [][]string
+type Check int
+
+const (
+	NotNil Check = iota
+)
+
+type Field struct {
+	Name  string
+	Value string
 }
 
-func (e ErrorNilField) Error() string {
-	joinedNames := make([]string, len(e.FieldNames))
-	for _, n := range e.FieldNames {
-		joinedNames = append(joinedNames, strings.Join(n, "."))
+func NewField(v metaValue) Field {
+	return Field{Name: strings.Join(v.Name, "."), Value: fmt.Sprintf("%#v", v.Value.Interface())}
+}
+
+type ErrorChecksFailed struct {
+	Field2Checks map[Field][]Check
+}
+
+func (e ErrorChecksFailed) Error() string {
+	failLines := make([]string, 0, len(e.Field2Checks))
+	for field, checks := range e.Field2Checks {
+		fails := make([]string, 0, len(checks))
+		for _, check := range checks {
+			switch check {
+			case NotNil:
+				fails = append(fails, "NotNil")
+			}
+		}
+		failLines = append(failLines, fmt.Sprintf("%v: %v: %v", strings.Join(fails, ", "), field.Name, field.Value))
 	}
-	return fmt.Sprintf("The following required field(s) were nil: \n\t%v\n", strings.Join(joinedNames, "\n\t"))
+	return fmt.Sprintf("The following field(s) failed checks: \n\t%v", strings.Join(failLines, "\n\t"))
 }

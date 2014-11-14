@@ -55,7 +55,9 @@ func TestNilOneLayerDown(t *testing.T) {
 		},
 	})
 	assert.Error(t, err)
-	assert.NoError(t, checkDeepEqual([][]string{[]string{"BigStruct", "Slicy", "NoNilly"}}, err.(ErrorNilField).FieldNames))
+	fmt.Println(err.Error())
+	err = checkDeepEqual(map[Field][]Check{Field{Name: "BigStruct.Slicy.NoNilly", Value: "[]interface {}(nil)"}: []Check{NotNil}}, err.(ErrorChecksFailed).Field2Checks)
+	assert.NoError(t, err)
 }
 
 func checkDeepEqual(e, r interface{}) error {
@@ -71,5 +73,5 @@ type notEqualError struct {
 }
 
 func (e notEqualError) Error() string {
-	return fmt.Sprintf("Not equal: %+v != %+v", e.e, e.r)
+	return fmt.Sprintf("Not equal: %#v != %#v", e.e, e.r)
 }
