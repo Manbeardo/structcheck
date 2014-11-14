@@ -7,37 +7,38 @@ import (
 	"strings"
 )
 
-type namedValue struct {
+// value plus information from a few levels up
+type metaValue struct {
 	reflect.Value
 	Name []string
 	tag  *reflect.StructTag
 }
 
-func (v namedValue) deeperName(n string) []string {
+func (v metaValue) buildDeeperName(n string) []string {
 	name := make([]string, len(v.Name), len(v.Name)+1)
 	copy(name, v.Name)
 	return append(name, n)
 }
 
-func (v namedValue) Field(i int) namedValue {
+func (v metaValue) Field(i int) metaValue {
 	v2 := v.Value.Field(i)
 	f := v.Value.Type().Field(i)
-	n := v.deeperName(f.Name)
-	return namedValue{Value: v2, Name: n, tag: &f.Tag}
+	n := v.buildDeeperName(f.Name)
+	return metaValue{Value: v2, Name: n, tag: &f.Tag}
 }
 
 // InterfaceValue returns the Value wrapped by v (assuming v is an interface)
-func (v namedValue) InterfaceValue() namedValue {
+func (v metaValue) InterfaceValue() metaValue {
 	v2 := reflect.ValueOf(v.Value.Interface())
-	n := v.deeperName(fmt.Sprintf("(%v)", v2.Type().Name()))
-	return namedValue{Value: v2, Name: n, tag: v.tag}
+	n := v.buildDeeperName(fmt.Sprintf("(%v)", v2.Type().Name()))
+	return metaValue{Value: v2, Name: n, tag: v.tag}
 }
 
-func (v namedValue) Indirect() namedValue {
-	return namedValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: v.tag}
+func (v metaValue) Indirect() metaValue {
+	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: v.tag}
 }
 
-func (v namedValue) GetChecks() Checks {
+func (v metaValue) GetChecks() Checks {
 	var c Checks
 	if v.tag != nil {
 		for _, str := range strings.Split(v.tag.Get("checks"), ",") {
@@ -67,7 +68,7 @@ func newValueQueue() *valueQueue {
 	}
 }
 
-func (q *valueQueue) Push(v namedValue) {
+func (q *valueQueue) Push(v metaValue) {
 	kind := v.Kind()
 	// take internal value of interfaces
 	if kind == reflect.Interface {
@@ -87,9 +88,9 @@ func (q *valueQueue) Push(v namedValue) {
 	return
 }
 
-func (q *valueQueue) Pop() namedValue {
+func (q *valueQueue) Pop() metaValue {
 	front := q.queue.Front()
-	v := front.Value.(namedValue)
+	v := front.Value.(metaValue)
 	q.queue.Remove(front)
 	return v
 }
@@ -116,7 +117,7 @@ func Validate(o interface{}) error {
 		return fmt.Errorf("o must be a struct type. Received: %v", top.Kind())
 	}
 	// Breadth first search to find nil required fields
-	namedTop := namedValue{Value: top, Name: []string{top.Type().Name()}}
+	namedTop := metaValue{Value: top, Name: []string{top.Type().Name()}}
 	badFields := make([][]string, 0)
 	q := newValueQueue()
 	q.Push(namedTop)
