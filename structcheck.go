@@ -99,7 +99,7 @@ func (q *valueQueue) Len() int {
 	return q.queue.Len()
 }
 
-// recursively runs checks on all
+// drills down (follows pointer and interface indirection) to a struct and recursively runs checks on all fields.
 func Validate(o interface{}) error {
 	if o == nil {
 		return ErrorNilValue{}
@@ -130,7 +130,7 @@ func Validate(o interface{}) error {
 		switch v.Kind() {
 		case reflect.Ptr, reflect.Interface, reflect.Chan, reflect.Func, reflect.Map, reflect.Slice:
 			if v.IsNil() && v.getChecks().NotNil {
-				f := NewField(v)
+				f := newField(v)
 				field2checks[f] = append(field2checks[f], NotNil)
 			}
 		}
@@ -169,7 +169,7 @@ type Field struct {
 	Value string
 }
 
-func NewField(v metaValue) Field {
+func newField(v metaValue) Field {
 	return Field{Name: strings.Join(v.Name, "."), Value: fmt.Sprintf("%#v", v.Value.Interface())}
 }
 
