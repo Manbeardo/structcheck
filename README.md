@@ -8,7 +8,6 @@ Currently supported constraints:
 * NotNil
 
 Example usage:
-
 ```golang
 package main
 
@@ -26,7 +25,11 @@ type MyJsonObjectType struct {
   }
 }
 
-var badJson = []byte("{\"NestedObject\":{\"A\":1}}")
+var badJson = []byte(`{
+  "NestedObject":{
+    "A":1
+  }
+}`)
 
 func main() {
   var o MyJsonObjectType
