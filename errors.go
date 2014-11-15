@@ -18,6 +18,17 @@ func (e ErrorInvalidKind) Error() string {
 	return fmt.Sprintf("Provided object must drill down to a struct. Received: %v", e.Kind)
 }
 
+// returned when an illegal check is encountered
+type ErrorIllegalCheck struct {
+	Value  metaValue
+	Check  Check
+	Reason string
+}
+
+func (e ErrorIllegalCheck) Error() string {
+	return fmt.Sprintf("Encountered illegal check on %v: %v Reason: %v", strings.Join(e.Value.Name, "."), string(e.Check), e.Reason)
+}
+
 // returned when a top level nil is received
 type ErrorNilValue struct{}
 
@@ -49,3 +60,8 @@ func (e ErrorChecksFailed) Error() string {
 	failWriter.Flush()
 	return fmt.Sprintf("The following field(s) failed checks: %v", buf.String())
 }
+
+// returned by checkers when check fails
+type errorCheckFailed struct{}
+
+func (e errorCheckFailed) Error() string { return "" }

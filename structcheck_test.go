@@ -55,7 +55,7 @@ func TestNilOneLayerDown(t *testing.T) {
 		},
 	})
 	assert.Error(t, err)
-	err = checkDeepEqual(map[Field][]Check{Field{Name: "BigStruct.Slicy.NoNilly", Value: "[]interface {}(nil)", Number: "0.1"}: []Check{NotNil}}, err.(ErrorChecksFailed).Field2Checks)
+	err = checkDeepEqual(map[Field][]Check{Field{Name: "BigStruct.Slicy.NoNilly", Value: "[]interface {}(nil)", Number: "0.1"}: []Check{CheckNotNil}}, err.(ErrorChecksFailed).Field2Checks)
 	assert.NoError(t, err)
 }
 
