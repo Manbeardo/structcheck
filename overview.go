@@ -1,5 +1,7 @@
 /*
-Checks that constraints on structs are met. Constraints are read as a comma-delimited list on the 'checks' annotation. Validate constraints by running `structcheck.Validate()`.
+Checks that constraints on structs are met. Constraints are read as a comma-delimited list on the 'checks' tag. Validate constraints by running `structcheck.Validate()`.
+
+See structcheck.Check for the full list of checks.
 
 Example:
     package main
