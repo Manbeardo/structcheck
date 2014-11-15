@@ -107,9 +107,9 @@ func (q *valueQueue) Len() int {
 }
 
 type Field struct {
-	Name   string
-	Value  string
-	Number string
+	Name   string // qualified field name (e.g. RootType.Field1.Field2)
+	Value  string // stringified field value
+	Number string // the index in the field tree (e.g. 0.1 for the second field of the first field of the root)
 }
 
 func newField(v metaValue) Field {

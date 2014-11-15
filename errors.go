@@ -11,11 +11,11 @@ import (
 
 // returned when the top level object does not drill down to a struct.
 type ErrorInvalidKind struct {
-	reflect.Kind
+	reflect.Type
 }
 
 func (e ErrorInvalidKind) Error() string {
-	return fmt.Sprintf("Provided object must drill down to a struct. Received: %v", e.Kind)
+	return fmt.Sprintf("Provided object must drill down to a struct. Received: %v", e.Type)
 }
 
 // returned when an illegal check is encountered

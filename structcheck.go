@@ -44,7 +44,7 @@ func Validate(o interface{}) error {
 	}
 
 	if top.Kind() != reflect.Struct {
-		return ErrorInvalidKind{Kind: top.Kind()}
+		return ErrorInvalidKind{Type: top.Type()}
 	}
 
 	// Breadth first search
