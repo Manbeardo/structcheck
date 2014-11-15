@@ -17,7 +17,7 @@ Example:
 
     type MyJsonObjectType struct {
         NestedObject struct{
-            Number  *int  `checks:"NotNil,Positive"`
+            Number  int   `checks:"Positive"`
             Pointer *int  `checks:"NotNil"`
             Slice   []int `checks:"NotEmpty"`
         }
