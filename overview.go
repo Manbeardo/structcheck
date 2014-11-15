@@ -13,12 +13,12 @@ Example:
 
     type MyJsonObjectType struct {
         NestedObject struct{
-            A *int `checks:"NotNil"`
-            B *int `checks:"NotNil"`
+            Number  int  `checks:"Positive"`
+            Pointer *int `checks:"NotNil"`
         }
     }
 
-    var badJson = []byte(`{"NestedObject":{"A":1}}`)
+    var badJson = []byte(`{"NestedObject":{"Number":-1}}`)
 
     func main() {
         var o MyJsonObjectType
@@ -30,6 +30,7 @@ Example:
     }
 Prints:
     The following field(s) failed checks:
-        MyJsonObjectType.NestedObject.B: NotNil: (*int)(nil)
+        MyJsonObjectType.NestedObject.Number:  Positive: (int)(-1)
+        MyJsonObjectType.NestedObject.Pointer: NotNil:   (*int)(nil)
 */
 package structcheck
