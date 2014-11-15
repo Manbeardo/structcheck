@@ -21,12 +21,11 @@ func (e ErrorInvalidKind) Error() string {
 // returned when an illegal (likely misspelled) check is encountered
 type ErrorIllegalCheck struct {
 	value  metaValue
-	Check  Check
 	Reason string
 }
 
 func (e ErrorIllegalCheck) Error() string {
-	return fmt.Sprintf("Encountered illegal check on %v: %v", strings.Join(e.value.Name, "."), string(e.Check))
+	return fmt.Sprintf("Encountered illegal check on %v: %v", strings.Join(e.value.Name, "."), e.Reason)
 }
 
 // returned when a top level nil is received
@@ -38,7 +37,7 @@ func (e ErrorNilValue) Error() string {
 
 // returned when checks fail on fields
 type ErrorChecksFailed struct {
-	Field2Checks map[Field][]Check
+	Field2Checks map[Field][]string
 }
 
 func (e ErrorChecksFailed) Error() string {
@@ -53,7 +52,7 @@ func (e ErrorChecksFailed) Error() string {
 		checks := e.Field2Checks[field]
 		fails := make([]string, 0, len(checks))
 		for _, check := range checks {
-			fails = append(fails, string(check))
+			fails = append(fails, check)
 		}
 		failWriter.Write([]byte(fmt.Sprintf("\n\t%v:\t%v:\t%v", field.Name, strings.Join(fails, ", "), field.Value)))
 	}

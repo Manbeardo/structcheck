@@ -17,15 +17,15 @@ func drillDown(v reflect.Value) (reflect.Value, error) {
 	return v, nil
 }
 
-func runChecks(v metaValue) ([]Check, error) {
-	failedChecks := []Check{}
-	checks, err := v.getChecks()
+func runChecks(v metaValue) ([]string, error) {
+	failedChecks := []string{}
+	checks, checkNames, err := v.getChecks()
 	if err != nil {
 		return nil, err
 	}
-	for check, _ := range checks {
-		if !check2checker[check](v) {
-			failedChecks = append(failedChecks, check)
+	for i, check := range checks {
+		if !check(v.Value) {
+			failedChecks = append(failedChecks, checkNames[i])
 		}
 	}
 	return failedChecks, nil
@@ -53,7 +53,7 @@ func Validate(o interface{}) error {
 		name = "(anonymous struct)"
 	}
 	namedTop := metaValue{Value: top, Name: []string{name}}
-	field2checks := make(map[Field][]Check)
+	field2checks := make(map[Field][]string)
 	q := newValueQueue()
 	q.Push(namedTop)
 	for q.Len() > 0 {

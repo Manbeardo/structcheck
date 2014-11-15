@@ -5,47 +5,29 @@ import (
 	"reflect"
 )
 
-type Check string
+type Check func(v reflect.Value) bool
 
-const (
-	CheckNotNil    Check = "NotNil"
-	CheckNil             = "Nil"
-	CheckPositive        = "Positive"
-	CheckNegative        = "Negative"
-	CheckNoSign          = "NoSign"    // -0 is considered signless
-	CheckNotEmpty        = "NotEmpty"  // len(o) != 0
-	CheckEmpty           = "Empty"     // len(o) == 0
-	CheckNillable        = "Nillable"  // can be nil
-	CheckNumeric         = "Numeric"   // is a number (includes complex)
-	CheckContainer       = "Container" // is a valid param for len()
-)
-
-var str2check = map[string]Check{}
-
-func init() {
-	for _, check := range []Check{
-		CheckNotNil,
-		CheckNil,
-		CheckPositive,
-		CheckNegative,
-		CheckNoSign,
-		CheckNotEmpty,
-		CheckNillable,
-		CheckNumeric,
-		CheckContainer,
-	} {
-		str2check[string(check)] = check
-	}
+var Checks = map[string]Check{
+	"NotNil":    func(v reflect.Value) bool { return !(Nillable.Check(v) && v.IsNil()) },
+	"Nil":       func(v reflect.Value) bool { return !(Nillable.Check(v) && !v.IsNil()) },
+	"Positive":  func(v reflect.Value) bool { return CheckSign(v, SignPositive) },
+	"Negative":  func(v reflect.Value) bool { return CheckSign(v, SignNegative) },
+	"NoSign":    func(v reflect.Value) bool { return CheckSign(v, SignNone) },
+	"NotEmpty":  func(v reflect.Value) bool { return !(Container.Check(v) && v.Len() == 0) },
+	"Empty":     func(v reflect.Value) bool { return !(Container.Check(v) && v.Len() != 0) },
+	"Nillable":  func(v reflect.Value) bool { return Nillable.Check(v) },
+	"Numeric":   func(v reflect.Value) bool { return Numeric.Check(v) },
+	"Container": func(v reflect.Value) bool { return Container.Check(v) },
 }
 
-type kindClass map[reflect.Kind]interface{}
+type KindClass map[reflect.Kind]interface{}
 
-func (class kindClass) Check(v metaValue) bool {
+func (class KindClass) Check(v reflect.Value) bool {
 	_, ok := class[v.Kind()]
 	return ok
 }
 
-var nillable = kindClass{
+var Nillable = KindClass{
 	reflect.Ptr:       nil,
 	reflect.Interface: nil,
 	reflect.Chan:      nil,
@@ -54,7 +36,7 @@ var nillable = kindClass{
 	reflect.Slice:     nil,
 }
 
-var numeric = kindClass{
+var Numeric = KindClass{
 	reflect.Int:        nil,
 	reflect.Int8:       nil,
 	reflect.Int16:      nil,
@@ -71,7 +53,7 @@ var numeric = kindClass{
 	reflect.Complex128: nil,
 }
 
-var container = kindClass{
+var Container = KindClass{
 	reflect.String: nil,
 	reflect.Array:  nil,
 	reflect.Slice:  nil,
@@ -79,16 +61,16 @@ var container = kindClass{
 	reflect.Chan:   nil,
 }
 
-type sign int
+type Sign int
 
 const (
-	signNone sign = iota
-	signPositive
-	signNegative
+	SignNone Sign = iota
+	SignPositive
+	SignNegative
 )
 
-func checkSign(v metaValue, s sign) bool {
-	if !numeric.Check(v) {
+func CheckSign(v reflect.Value, s Sign) bool {
+	if !Numeric.Check(v) {
 		return true
 	}
 	isPositive := false
@@ -121,29 +103,14 @@ func checkSign(v metaValue, s sign) bool {
 
 	checkPassed := false
 	switch s {
-	case signNone:
+	case SignNone:
 		checkPassed = !isNegative && !isPositive
-	case signNegative:
+	case SignNegative:
 		checkPassed = isNegative
-	case signPositive:
+	case SignPositive:
 		checkPassed = isPositive
 	default:
 		panic(fmt.Sprintf("unrecognized sign: %v", s))
 	}
 	return checkPassed
-}
-
-type checker func(v metaValue) bool
-
-var check2checker = map[Check]checker{
-	CheckNotNil:    func(v metaValue) bool { return !(nillable.Check(v) && v.IsNil()) },
-	CheckNil:       func(v metaValue) bool { return !(nillable.Check(v) && !v.IsNil()) },
-	CheckPositive:  func(v metaValue) bool { return checkSign(v, signPositive) },
-	CheckNegative:  func(v metaValue) bool { return checkSign(v, signNegative) },
-	CheckNoSign:    func(v metaValue) bool { return checkSign(v, signNone) },
-	CheckNotEmpty:  func(v metaValue) bool { return !(container.Check(v) && v.Len() == 0) },
-	CheckEmpty:     func(v metaValue) bool { return !(container.Check(v) && v.Len() != 0) },
-	CheckNillable:  func(v metaValue) bool { return nillable.Check(v) },
-	CheckNumeric:   func(v metaValue) bool { return numeric.Check(v) },
-	CheckContainer: func(v metaValue) bool { return container.Check(v) },
 }

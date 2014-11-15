@@ -14,14 +14,14 @@ type CycleNode struct {
 func TestSelfReference(t *testing.T) {
 	node := new(CycleNode)
 	node.CycleNode = node
-	assert.Nil(t, Validate(node))
+	assert.NoError(t, Validate(node))
 }
 
 func TestSmallCycle(t *testing.T) {
 	n1 := new(CycleNode)
 	n2 := &CycleNode{CycleNode: n1}
 	n1.CycleNode = n2
-	assert.Nil(t, Validate(n1))
+	assert.NoError(t, Validate(n1))
 }
 
 type SlicyStruct struct {
@@ -30,7 +30,7 @@ type SlicyStruct struct {
 }
 
 func TestGoodSlicyStruct(t *testing.T) {
-	assert.Nil(t, Validate(SlicyStruct{
+	assert.NoError(t, Validate(SlicyStruct{
 		Nilly:   nil,
 		NoNilly: make([]interface{}, 0),
 	}))
@@ -55,7 +55,7 @@ func TestNilOneLayerDown(t *testing.T) {
 		},
 	})
 	assert.Error(t, err)
-	err = checkDeepEqual(map[Field][]Check{Field{Name: "BigStruct.Slicy.NoNilly", Value: "[]interface {}(nil)", Number: "0.1"}: []Check{CheckNotNil}}, err.(ErrorChecksFailed).Field2Checks)
+	err = checkDeepEqual(map[Field][]string{Field{Name: "BigStruct.Slicy.NoNilly", Value: "[]interface {}(nil)", Number: "0.1"}: []string{"NotNil"}}, err.(ErrorChecksFailed).Field2Checks)
 	assert.NoError(t, err)
 }
 

@@ -50,23 +50,27 @@ func (v metaValue) Indirect() metaValue {
 	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: nil, Number: v.Number}
 }
 
-func (v metaValue) getChecks() (map[Check]interface{}, error) {
-	checks := make(map[Check]interface{}, 0)
+func (v metaValue) getChecks() ([]Check, []string, error) {
+	checks := []Check{}
+	checkNames := []string{}
 	if v.tag != nil {
 		for _, str := range strings.Split(v.tag.Get("checks"), ",") {
-			check, ok := str2check[str]
+			if str == "" {
+				continue
+			}
+			check, ok := Checks[str]
 			if ok {
-				checks[check] = nil
-			} else if check != "" {
-				return nil, ErrorIllegalCheck{
+				checks = append(checks, check)
+				checkNames = append(checkNames, str)
+			} else {
+				return nil, nil, ErrorIllegalCheck{
 					value:  v,
-					Check:  check,
-					Reason: fmt.Sprintf("'%v' is not a recognized check type", string(check)),
+					Reason: fmt.Sprintf("'%v' is not a recognized check type", str),
 				}
 			}
 		}
 	}
-	return checks, nil
+	return checks, checkNames, nil
 }
 
 // Breadth First Search queue for reflective struct exploration. Prevents infinite recursion by marking pointers and refusing to push marked pointers.
