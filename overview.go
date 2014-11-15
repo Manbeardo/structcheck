@@ -1,7 +1,7 @@
 /*
 Package structcheck validates struct constraints.
 
-Checks that constraints on structs are met. Constraints are read as a comma-delimited list on the 'checks' tag. Validate constraints by running `structcheck.Validate()`.
+Checks that constraints on structs are met. Constraints are read as a comma-delimited list on the "checks" tag. Validate constraints by running structcheck.Validate().
 
 See the Checks map for the full list of built-in checks.
 

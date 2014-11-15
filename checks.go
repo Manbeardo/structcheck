@@ -10,10 +10,10 @@ type Check func(v reflect.Value) bool
 
 var Checks = map[string]Check{
 	"NotNil": func(v reflect.Value) bool {
-		return !(Nillable.Check(v) && v.IsNil())
+		return !(Nilable.Check(v) && v.IsNil())
 	},
 	"Nil": func(v reflect.Value) bool {
-		return !(Nillable.Check(v) && !v.IsNil())
+		return !(Nilable.Check(v) && !v.IsNil())
 	},
 	"Positive": func(v reflect.Value) bool {
 		return CheckSign(v, SignPositive)
@@ -30,8 +30,8 @@ var Checks = map[string]Check{
 	"Empty": func(v reflect.Value) bool {
 		return !(Container.Check(v) && v.Len() != 0)
 	},
-	"Nillable": func(v reflect.Value) bool {
-		return Nillable.Check(v)
+	"Nilable": func(v reflect.Value) bool {
+		return Nilable.Check(v)
 	},
 	"Numeric": func(v reflect.Value) bool {
 		return Numeric.Check(v)
@@ -49,7 +49,7 @@ func (class KindClass) Check(v reflect.Value) bool {
 	return ok
 }
 
-var Nillable = KindClass{
+var Nilable = KindClass{
 	reflect.Ptr:       nil,
 	reflect.Interface: nil,
 	reflect.Chan:      nil,
