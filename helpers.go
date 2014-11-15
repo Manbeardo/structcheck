@@ -47,10 +47,10 @@ func (v metaValue) InterfaceValue() metaValue {
 }
 
 func (v metaValue) Indirect() metaValue {
-	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: nil, Number: v.Number}
+	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: v.tag, Number: v.Number}
 }
 
-func (v metaValue) getChecks() ([]Check, []string, error) {
+func (v metaValue) getChecks(checkSet map[string]Check) ([]Check, []string, error) {
 	checks := []Check{}
 	checkNames := []string{}
 	if v.tag != nil {
@@ -58,7 +58,7 @@ func (v metaValue) getChecks() ([]Check, []string, error) {
 			if str == "" {
 				continue
 			}
-			check, ok := Checks[str]
+			check, ok := checkSet[str]
 			if ok {
 				checks = append(checks, check)
 				checkNames = append(checkNames, str)

@@ -17,9 +17,9 @@ func drillDown(v reflect.Value) (reflect.Value, error) {
 	return v, nil
 }
 
-func runChecks(v metaValue) ([]string, error) {
+func runChecks(v metaValue, checkSet map[string]Check) ([]string, error) {
 	failedChecks := []string{}
-	checks, checkNames, err := v.getChecks()
+	checks, checkNames, err := v.getChecks(checkSet)
 	if err != nil {
 		return nil, err
 	}
@@ -32,12 +32,17 @@ func runChecks(v metaValue) ([]string, error) {
 }
 
 // drills down (follows pointer and interface indirection) to a struct and recursively runs checks on all fields.
-func Validate(o interface{}) error {
+func Validate(i interface{}) error {
+	return ValidateWithCheckSet(i, Checks)
+}
+
+// runs Validate with a custom set of checks
+func ValidateWithCheckSet(i interface{}, checkSet map[string]Check) error {
 	// find root node
-	if o == nil {
+	if i == nil {
 		return ErrorNilValue{}
 	}
-	top := reflect.ValueOf(o)
+	top := reflect.ValueOf(i)
 	top, err := drillDown(top)
 	if err != nil {
 		return err
@@ -58,7 +63,7 @@ func Validate(o interface{}) error {
 	q.Push(namedTop)
 	for q.Len() > 0 {
 		v := q.Pop()
-		failedChecks, err := runChecks(v)
+		failedChecks, err := runChecks(v, checkSet)
 		if err != nil {
 			return err
 		}
@@ -76,8 +81,8 @@ func Validate(o interface{}) error {
 				q.Push(v.InterfaceValue())
 			}
 		case reflect.Struct:
-			for i := 0; i < v.NumField(); i++ {
-				q.Push(v.Field(i))
+			for j := 0; j < v.NumField(); j++ {
+				q.Push(v.Field(j))
 			}
 		}
 	}

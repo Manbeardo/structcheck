@@ -5,23 +5,45 @@ import (
 	"reflect"
 )
 
+// returns true if the check is met
 type Check func(v reflect.Value) bool
 
 var Checks = map[string]Check{
-	"NotNil":    func(v reflect.Value) bool { return !(Nillable.Check(v) && v.IsNil()) },
-	"Nil":       func(v reflect.Value) bool { return !(Nillable.Check(v) && !v.IsNil()) },
-	"Positive":  func(v reflect.Value) bool { return CheckSign(v, SignPositive) },
-	"Negative":  func(v reflect.Value) bool { return CheckSign(v, SignNegative) },
-	"NoSign":    func(v reflect.Value) bool { return CheckSign(v, SignNone) },
-	"NotEmpty":  func(v reflect.Value) bool { return !(Container.Check(v) && v.Len() == 0) },
-	"Empty":     func(v reflect.Value) bool { return !(Container.Check(v) && v.Len() != 0) },
-	"Nillable":  func(v reflect.Value) bool { return Nillable.Check(v) },
-	"Numeric":   func(v reflect.Value) bool { return Numeric.Check(v) },
-	"Container": func(v reflect.Value) bool { return Container.Check(v) },
+	"NotNil": func(v reflect.Value) bool {
+		return !(Nillable.Check(v) && v.IsNil())
+	},
+	"Nil": func(v reflect.Value) bool {
+		return !(Nillable.Check(v) && !v.IsNil())
+	},
+	"Positive": func(v reflect.Value) bool {
+		return CheckSign(v, SignPositive)
+	},
+	"Negative": func(v reflect.Value) bool {
+		return CheckSign(v, SignNegative)
+	},
+	"NoSign": func(v reflect.Value) bool {
+		return CheckSign(v, SignNone)
+	},
+	"NotEmpty": func(v reflect.Value) bool {
+		return !(Container.Check(v) && v.Len() == 0)
+	},
+	"Empty": func(v reflect.Value) bool {
+		return !(Container.Check(v) && v.Len() != 0)
+	},
+	"Nillable": func(v reflect.Value) bool {
+		return Nillable.Check(v)
+	},
+	"Numeric": func(v reflect.Value) bool {
+		return Numeric.Check(v)
+	},
+	"Container": func(v reflect.Value) bool {
+		return Container.Check(v)
+	},
 }
 
 type KindClass map[reflect.Kind]interface{}
 
+// true if v is a member of this class
 func (class KindClass) Check(v reflect.Value) bool {
 	_, ok := class[v.Kind()]
 	return ok
