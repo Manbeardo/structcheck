@@ -24,12 +24,8 @@ func runChecks(v metaValue) ([]Check, error) {
 		return nil, err
 	}
 	for check, _ := range checks {
-		err := check2checker[check](v)
-		switch err.(type) {
-		case errorCheckFailed:
+		if !check2checker[check](v) {
 			failedChecks = append(failedChecks, check)
-		default:
-			return nil, err
 		}
 	}
 	return failedChecks, nil
