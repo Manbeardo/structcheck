@@ -47,19 +47,26 @@ func (v metaValue) InterfaceValue() metaValue {
 }
 
 func (v metaValue) Indirect() metaValue {
-	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: v.tag, Number: v.Number}
+	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: nil, Number: v.Number}
 }
 
-func (v metaValue) getChecks() map[Check]interface{} {
+func (v metaValue) getChecks() (map[Check]interface{}, error) {
 	checks := make(map[Check]interface{}, 0)
 	if v.tag != nil {
 		for _, str := range strings.Split(v.tag.Get("checks"), ",") {
-			if check, ok := str2check[strings.ToLower(str)]; ok {
+			check, ok := str2check[str]
+			if ok {
 				checks[check] = nil
+			} else if check != "" {
+				return nil, ErrorIllegalCheck{
+					value:  v,
+					Check:  check,
+					Reason: fmt.Sprintf("'%v' is not a recognized check type", string(check)),
+				}
 			}
 		}
 	}
-	return checks
+	return checks, nil
 }
 
 // Breadth First Search queue for reflective struct exploration. Prevents infinite recursion by marking pointers and refusing to push marked pointers.
@@ -124,6 +131,7 @@ func newField(v metaValue) Field {
 	}
 }
 
+// sorts fields by their natural (in-struct) order
 type ByFieldOrder []Field
 
 func (a ByFieldOrder) Len() int {

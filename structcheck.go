@@ -19,7 +19,11 @@ func drillDown(v reflect.Value) (reflect.Value, error) {
 
 func runChecks(v metaValue) ([]Check, error) {
 	failedChecks := []Check{}
-	for check, _ := range v.getChecks() {
+	checks, err := v.getChecks()
+	if err != nil {
+		return nil, err
+	}
+	for check, _ := range checks {
 		err := check2checker[check](v)
 		switch err.(type) {
 		case errorCheckFailed:

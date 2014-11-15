@@ -20,13 +20,13 @@ func (e ErrorInvalidKind) Error() string {
 
 // returned when an illegal check is encountered
 type ErrorIllegalCheck struct {
-	Value  metaValue
+	value  metaValue
 	Check  Check
 	Reason string
 }
 
 func (e ErrorIllegalCheck) Error() string {
-	return fmt.Sprintf("Encountered illegal check on %v: %v Reason: %v", strings.Join(e.Value.Name, "."), string(e.Check), e.Reason)
+	return fmt.Sprintf("Encountered illegal check on %v: %v Reason: %v", strings.Join(e.value.Name, "."), string(e.Check), e.Reason)
 }
 
 // returned when a top level nil is received

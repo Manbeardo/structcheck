@@ -108,6 +108,27 @@ func TestVeryLongFieldNameStruct(t *testing.T) {
 	fmt.Println(err.Error())
 }
 
+func TestAllSuccessCases(t *testing.T) {
+	err := Validate(struct {
+		A *struct{} `checks:"NotNil"`
+		B *int      `checks:"Nil"`
+		C int       `checks:"Positive"`
+		D int       `checks:"Negative"`
+		E int       `checks:"NoSign"`
+		F []int     `checks:"NotEmpty"`
+		G []int     `checks:"Empty"`
+	}{
+		A: &struct{}{},
+		B: nil,
+		C: 1,
+		D: -1,
+		E: 0,
+		F: []int{0},
+		G: []int{},
+	})
+	assert.NoError(t, err)
+}
+
 func checkDeepEqual(e, r interface{}) error {
 	if reflect.DeepEqual(e, r) {
 		return nil

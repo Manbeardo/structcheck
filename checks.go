@@ -3,7 +3,6 @@ package structcheck
 import (
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 type Check string
@@ -29,7 +28,7 @@ func init() {
 		CheckNoSign,
 		CheckNotEmpty,
 	} {
-		str2check[strings.ToLower(string(check))] = check
+		str2check[string(check)] = check
 	}
 }
 
@@ -41,7 +40,7 @@ type kindClass struct {
 func (class kindClass) Check(v metaValue, c Check) error {
 	if _, ok := class.Members[v.Kind()]; !ok {
 		return ErrorIllegalCheck{
-			Value:  v,
+			value:  v,
 			Check:  c,
 			Reason: class.ReasonFunc(v),
 		}
@@ -59,7 +58,7 @@ var nillable = kindClass{
 		reflect.Map:       nil,
 		reflect.Slice:     nil,
 	},
-	ReasonFunc: func(v metaValue) string { return fmt.Sprintf("%v is not a numeric type", v.Type()) },
+	ReasonFunc: func(v metaValue) string { return fmt.Sprintf("%v is not a nillable type", v.Type()) },
 }
 
 var numeric = kindClass{
