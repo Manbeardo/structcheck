@@ -97,11 +97,12 @@ func TestVeryLongFieldNameStruct(t *testing.T) {
 		VeryVeryVeryVeryVeryVeryLongFieldName *int `checks:"NotNil"`
 		B                                     *int `checks:"NotNil"`
 		StructWithManyMembers                 struct {
-			A *int `checks:"NotNil"`
-			B *int `checks:"NotNil"`
-			C *int `checks:"NotNil"`
-			D *int `checks:"NotNil"`
-			E *int `checks:"NotNil"`
+			A *int  `checks:"NotNil"`
+			B *int  `checks:"NotNil"`
+			C *int  `checks:"NotNil"`
+			D *int  `checks:"NotNil"`
+			E *int  `checks:"NotNil"`
+			F []int `checks:"NotEmpty"`
 		}
 	}{})
 	assert.Error(t, err)

@@ -17,8 +17,9 @@ Example:
 
     type MyJsonObjectType struct {
         NestedObject struct{
-            Number  int  `checks:"Positive"`
-            Pointer *int `checks:"NotNil"`
+            Number  *int  `checks:"NotNil,Positive"`
+            Pointer *int  `checks:"NotNil"`
+            Slice   []int `checks:"NotEmpty"`
         }
     }
 
@@ -36,5 +37,6 @@ Prints:
     The following field(s) failed checks:
         MyJsonObjectType.NestedObject.Number:  Positive: (int)(-1)
         MyJsonObjectType.NestedObject.Pointer: NotNil:   (*int)(nil)
+        MyJsonObjectType.NestedObject.Slice:   NotEmpty: []int(nil)
 */
 package structcheck
