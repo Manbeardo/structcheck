@@ -33,11 +33,11 @@ func runChecks(v metaValue, checkSet map[string]Check) ([]string, error) {
 
 // drills down (follows pointer and interface indirection) to a struct and recursively runs checks on all fields.
 func Validate(i interface{}) error {
-	return ValidateWithCheckSet(i, Checks)
+	return CustomValidate(i, DefaultChecks, DefaultCheckFinder)
 }
 
 // runs Validate with a custom set of checks
-func ValidateWithCheckSet(i interface{}, checkSet map[string]Check) error {
+func CustomValidate(i interface{}, checkSet map[string]Check, checkFinder CheckFinder) error {
 	// find root node
 	if i == nil {
 		return ErrorNilValue{}
@@ -57,7 +57,11 @@ func ValidateWithCheckSet(i interface{}, checkSet map[string]Check) error {
 	if name == "" {
 		name = "(anonymous struct)"
 	}
-	namedTop := metaValue{Value: top, Name: []string{name}}
+	namedTop := metaValue{
+		Value:       top,
+		Name:        []string{name},
+		CheckFinder: checkFinder,
+	}
 	field2checks := make(map[Field][]string)
 	q := newValueQueue()
 	q.Push(namedTop)

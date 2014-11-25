@@ -8,7 +8,7 @@ import (
 // returns true if the check is met
 type Check func(v reflect.Value) bool
 
-var Checks = map[string]Check{
+var DefaultChecks = map[string]Check{
 	"NotNil": func(v reflect.Value) bool {
 		return !(Nilable.Check(v) && v.IsNil())
 	},

@@ -9,48 +9,25 @@ import (
 	"strings"
 )
 
-// value plus information from a few levels up
-type metaValue struct {
-	reflect.Value
-	Name   []string
-	Number []int
-	tag    *reflect.StructTag
-}
+type CheckFinder func(v metaValue, checkSet map[string]Check) ([]Check, []string, error)
 
-func (v metaValue) buildDeeperName(n string) []string {
-	name := make([]string, len(v.Name), len(v.Name)+1)
-	copy(name, v.Name)
-	return append(name, n)
-}
-
-func (v metaValue) buildDeeperNumber(n int) []int {
-	num := make([]int, len(v.Number), len(v.Number)+1)
-	copy(num, v.Number)
-	return append(num, n)
-}
-
-func (v metaValue) Field(i int) metaValue {
-	f := v.Value.Type().Field(i)
-	return metaValue{
-		Value:  v.Value.Field(i),
-		Name:   v.buildDeeperName(f.Name),
-		Number: v.buildDeeperNumber(i),
-		tag:    &f.Tag,
+// Builds a CheckFinder that returns the same set of checks for all fields
+func BuildFixedCheckFinder(keys []string, checkSet map[string]Check) (CheckFinder, error) {
+	checks := make([]Check, len(keys))
+	for i, key := range keys {
+		check, ok := checkSet[key]
+		if !ok {
+			return nil, fmt.Errorf("No check found with name: %v", key)
+		}
+		checks[i] = check
 	}
+	return func(v metaValue, checkSet map[string]Check) ([]Check, []string, error) {
+		return checks, keys, nil
+	}, nil
 }
 
-// InterfaceValue returns the Value wrapped by v (assuming v is an interface)
-func (v metaValue) InterfaceValue() metaValue {
-	v2 := reflect.ValueOf(v.Value.Interface())
-	n := v.buildDeeperName(fmt.Sprintf("(%v)", v2.Type().Name()))
-	return metaValue{Value: v2, Name: n, tag: v.tag, Number: v.Number}
-}
-
-func (v metaValue) Indirect() metaValue {
-	return metaValue{Value: reflect.Indirect(v.Value), Name: v.Name, tag: v.tag, Number: v.Number}
-}
-
-func (v metaValue) getChecks(checkSet map[string]Check) ([]Check, []string, error) {
+// Searches struct field tags for check directives
+func DefaultCheckFinder(v metaValue, checkSet map[string]Check) ([]Check, []string, error) {
 	checks := []Check{}
 	checkNames := []string{}
 	if v.tag != nil {
@@ -71,6 +48,65 @@ func (v metaValue) getChecks(checkSet map[string]Check) ([]Check, []string, erro
 		}
 	}
 	return checks, checkNames, nil
+}
+
+// value plus information from a few levels up
+type metaValue struct {
+	reflect.Value
+	Name   []string
+	Number []int
+	CheckFinder
+	tag *reflect.StructTag
+}
+
+func (v metaValue) buildDeeperName(n string) []string {
+	name := make([]string, len(v.Name), len(v.Name)+1)
+	copy(name, v.Name)
+	return append(name, n)
+}
+
+func (v metaValue) buildDeeperNumber(n int) []int {
+	num := make([]int, len(v.Number), len(v.Number)+1)
+	copy(num, v.Number)
+	return append(num, n)
+}
+
+func (v metaValue) Field(i int) metaValue {
+	f := v.Value.Type().Field(i)
+	return metaValue{
+		Value:       v.Value.Field(i),
+		Name:        v.buildDeeperName(f.Name),
+		Number:      v.buildDeeperNumber(i),
+		CheckFinder: v.CheckFinder,
+		tag:         &f.Tag,
+	}
+}
+
+// InterfaceValue returns the Value wrapped by v (assuming v is an interface)
+func (v metaValue) InterfaceValue() metaValue {
+	v2 := reflect.ValueOf(v.Value.Interface())
+	n := v.buildDeeperName(fmt.Sprintf("(%v)", v2.Type().Name()))
+	return metaValue{
+		Value:       v2,
+		Name:        n,
+		Number:      v.Number,
+		CheckFinder: v.CheckFinder,
+		tag:         v.tag,
+	}
+}
+
+func (v metaValue) Indirect() metaValue {
+	return metaValue{
+		Value:       reflect.Indirect(v.Value),
+		Name:        v.Name,
+		Number:      v.Number,
+		CheckFinder: v.CheckFinder,
+		tag:         v.tag,
+	}
+}
+
+func (v metaValue) getChecks(checkSet map[string]Check) ([]Check, []string, error) {
+	return v.CheckFinder(v, checkSet)
 }
 
 // Breadth First Search queue for reflective struct exploration. Prevents infinite recursion by marking pointers and refusing to push marked pointers.
