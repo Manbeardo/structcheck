@@ -17,9 +17,9 @@ func drillDown(v reflect.Value) (reflect.Value, error) {
 	return v, nil
 }
 
-func runChecks(v metaValue, checkSet map[string]Check) ([]string, error) {
+func runChecks(v metaValue) ([]string, error) {
 	failedChecks := []string{}
-	checks, checkNames, err := v.getChecks(checkSet)
+	checks, checkNames, err := v.getChecks()
 	if err != nil {
 		return nil, err
 	}
@@ -33,11 +33,11 @@ func runChecks(v metaValue, checkSet map[string]Check) ([]string, error) {
 
 // drills down (follows pointer and interface indirection) to a struct and recursively runs checks on all fields.
 func Validate(i interface{}) error {
-	return CustomValidate(i, DefaultChecks, DefaultCheckFinder)
+	return CustomValidate(i, BuildTagCheckFinder(DefaultChecks))
 }
 
 // runs Validate with a custom set of checks
-func CustomValidate(i interface{}, checkSet map[string]Check, checkFinder CheckFinder) error {
+func CustomValidate(i interface{}, checkFinder CheckFinder) error {
 	// find root node
 	if i == nil {
 		return ErrorNilValue{}
@@ -67,7 +67,7 @@ func CustomValidate(i interface{}, checkSet map[string]Check, checkFinder CheckF
 	q.Push(namedTop)
 	for q.Len() > 0 {
 		v := q.Pop()
-		failedChecks, err := runChecks(v, checkSet)
+		failedChecks, err := runChecks(v)
 		if err != nil {
 			return err
 		}

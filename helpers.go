@@ -9,25 +9,16 @@ import (
 	"strings"
 )
 
-type CheckFinder func(v metaValue, checkSet map[string]Check) ([]Check, []string, error)
+type CheckFinder func(v metaValue) ([]Check, []string, error)
 
-// Builds a CheckFinder that returns the same set of checks for all fields
-func BuildFixedCheckFinder(keys []string, checkSet map[string]Check) (CheckFinder, error) {
-	checks := make([]Check, len(keys))
-	for i, key := range keys {
-		check, ok := checkSet[key]
-		if !ok {
-			return nil, fmt.Errorf("No check found with name: %v", key)
-		}
-		checks[i] = check
+func BuildTagCheckFinder(checkSet map[string]Check) CheckFinder {
+	return func(v metaValue) ([]Check, []string, error) {
+		return tagCheckFinder(v, checkSet)
 	}
-	return func(v metaValue, checkSet map[string]Check) ([]Check, []string, error) {
-		return checks, keys, nil
-	}, nil
 }
 
 // Searches struct field tags for check directives
-func DefaultCheckFinder(v metaValue, checkSet map[string]Check) ([]Check, []string, error) {
+func tagCheckFinder(v metaValue, checkSet map[string]Check) ([]Check, []string, error) {
 	checks := []Check{}
 	checkNames := []string{}
 	if v.tag != nil {
@@ -105,8 +96,8 @@ func (v metaValue) Indirect() metaValue {
 	}
 }
 
-func (v metaValue) getChecks(checkSet map[string]Check) ([]Check, []string, error) {
-	return v.CheckFinder(v, checkSet)
+func (v metaValue) getChecks() ([]Check, []string, error) {
+	return v.CheckFinder(v)
 }
 
 // Breadth First Search queue for reflective struct exploration. Prevents infinite recursion by marking pointers and refusing to push marked pointers.
