@@ -108,7 +108,7 @@ func CheckNoNils(i interface{}) error {
 	return CustomValidate(i, finder)
 }
 
-// checks that the named fields of i exist and are not null
+// checks that the named fields and their parents exist and are not null
 func CheckFieldsNotNil(i interface{}, fieldNames []string) error {
 	if err := CheckFieldsExist(i, fieldNames); err != nil {
 		return err
@@ -116,7 +116,11 @@ func CheckFieldsNotNil(i interface{}, fieldNames []string) error {
 	field2checks := make(map[string][]string, len(fieldNames))
 	checks := []string{"NotNil"}
 	for _, name := range fieldNames {
-		field2checks[name] = checks
+		exploded := strings.Split(name, ".")
+		for i := 0; i < len(exploded); i++ {
+			subname := strings.Join(exploded[:len(exploded)-i], ".")
+			field2checks[subname] = checks
+		}
 	}
 
 	if finder, err := BuildStringyCheckFinder(field2checks, DefaultChecks); err != nil {

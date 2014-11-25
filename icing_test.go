@@ -51,3 +51,7 @@ func TestCheckFieldNotNil_badNestedNilField(t *testing.T) {
 	testStruct := pointyTestStruct{&zero, &pointyTestStructInner{nil, zero}}
 	require.Error(t, CheckFieldsNotNil(testStruct, pointyTestStructFieldNames))
 }
+
+func TestCheckFieldNotNil_badFieldNestedUnderNil(t *testing.T) {
+	require.Error(t, CheckFieldsNotNil(pointyTestStruct{}, []string{"b.a"}))
+}
