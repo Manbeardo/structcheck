@@ -155,9 +155,18 @@ func newField(v metaValue) Field {
 	for i, num := range v.Number {
 		n[i] = strconv.Itoa(num)
 	}
+	value := ""
+	for _, name := range v.Name[1:] {
+		if name[:1] == strings.ToLower(name)[:1] {
+			value = fmt.Sprintf("unexported field (%v)", v)
+		}
+	}
+	if value == "" {
+		value = fmt.Sprintf("%#v", v.Interface())
+	}
 	return Field{
 		Name:   strings.Join(v.Name, "."),
-		Value:  fmt.Sprintf("%#v", v.Value.Interface()),
+		Value:  value,
 		Number: strings.Join(n, "."),
 	}
 }
